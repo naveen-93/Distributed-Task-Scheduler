@@ -25,9 +25,9 @@ mkdir -p gen
 # === Step 4: Run protoc ===
 echo "🚀 Generating Go code from proto/scheduler.proto..."
 protoc \
-  --go_out=gen \
+  --go_out=. \
   --go_opt=paths=source_relative \
-  --go-grpc_out=gen \
+  --go-grpc_out=. \
   --go-grpc_opt=paths=source_relative \
   proto/scheduler.proto
 

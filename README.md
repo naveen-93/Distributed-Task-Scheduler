@@ -19,7 +19,7 @@ A basic distributed task scheduler implementation in Go using gRPC and TCP socke
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/distributed-task-scheduler.git
+git clone https://github.com/naveen-93/Distributed-Task-Scheduler.git
 cd distributed-task-scheduler
 ```
 
@@ -30,7 +30,7 @@ go mod tidy
 
 3. Generate protobuf code:
 ```bash
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/scheduler.proto
+zsh protogen.sh
 ```
 
 ## Usage
