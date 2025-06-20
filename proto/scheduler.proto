@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package scheduler;
+option go_package = "distributed-task-scheduler/proto";
+
+service TaskScheduler {
+  // Submit a new task
+  rpc SubmitTask(Task) returns (TaskResponse) {}
+  // Get task status
+  rpc GetTaskStatus(TaskId) returns (TaskStatus) {}
+}
+
+service JobService {
+  // Submit a new job
+  rpc SubmitJob(Job) returns (JobResponse) {}
+  // Get job status and output
+  rpc GetJobStatus(JobId) returns (JobStatus) {}
+}
+
+message Task {
+  string id = 1;
+  string name = 2;
+  string command = 3;
+  int64 schedule_time = 4;
+}
+
+message TaskResponse {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message TaskId {
+  string id = 1;
+}
+
+message TaskStatus {
+  string id = 1;
+  string status = 2;  // PENDING, RUNNING, COMPLETED, FAILED
+  string result = 3;
+}
+
+message Job {
+  string id = 1;
+  string command = 2;
+  int64 created_at = 3;
+}
+
+message JobResponse {
+  string job_id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message JobId {
+  string id = 1;
+}
+
+message JobStatus {
+  string id = 1;
+  string status = 2;  // PENDING, RUNNING, SUCCEEDED, FAILED
+  string output = 3;  // Command output (stdout + stderr)
+  int64 created_at = 4;
+  int64 updated_at = 5;
+} 
