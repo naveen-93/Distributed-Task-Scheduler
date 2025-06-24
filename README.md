@@ -1,133 +1,289 @@
 # Distributed Task Scheduler
 
-A distributed task scheduling system built in Go that consists of three main components: a server, workers, and a client. The system uses Redis for job queue management and gRPC for communication between components.
+A high-performance distributed task scheduler built with Go, featuring gRPC communication, Redis queue management, and SQLite job persistence.
 
-## System Architecture
+## 🚀 Features
 
-- **Server**: Central coordinator that manages job scheduling and distribution
-- **Worker**: Executes the assigned tasks and reports back to the server
-- **Client**: Submits jobs to the server
-- **Redis**: Used as a message queue for job distribution
-- **SQLite**: Stores job information and execution history
+- **Distributed Architecture**: Scalable server-worker model
+- **gRPC Communication**: Fast, type-safe client-server communication
+- **Redis Queue**: Reliable FIFO job queue with Redis
+- **SQLite Persistence**: Durable job storage and status tracking
+- **Real-time Status**: Live job status monitoring
+- **Concurrent Processing**: Multiple workers can process jobs simultaneously
+- **Command Execution**: Execute any shell command as a job
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
 
-## Prerequisites
-
-- Go 1.x or higher
-- Redis server
-- Make build tool
-- SQLite
-
-## Project Structure
+## 🏗️ Architecture
 
 ```
-Distributed-Task-Scheduler/
-├── cmd/                    # Main applications
-│   ├── client/            # Client executable
-│   ├── server/            # Server executable
-│   └── worker/            # Worker executable
-├── internal/              # Internal packages
-│   ├── client/           # Client implementation
-│   ├── db/               # Database operations
-│   ├── queue/            # Redis queue management
-│   ├── server/           # Server implementation
-│   └── worker/           # Worker implementation
-├── proto/                 # Protocol Buffers definitions
-├── Makefile              # Build and run commands
-├── protogen.sh           # Protocol Buffers generation script
-└── run_services.sh       # Script to run server and worker
+┌─────────┐    gRPC     ┌─────────┐    Redis    ┌─────────┐
+│ Client  │ ────────────▶ Server  │ ────────────▶ Worker  │
+└─────────┘             └─────────┘             └─────────┘
+                             │                       │
+                             ▼                       ▼
+                        ┌─────────┐             ┌─────────┐
+                        │ SQLite  │             │ Command │
+                        │   DB    │             │ Executor│
+                        └─────────┘             └─────────┘
 ```
 
-## Building the Project
+## 📋 Prerequisites
 
-Use the Makefile to build all components:
+- **Go** 1.19 or higher
+- **Redis** server
+- **Protocol Buffers** compiler (for development)
 
+### Installing Dependencies
+
+**macOS:**
+```bash
+brew install go redis protobuf
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install golang-go redis-server protobuf-compiler
+```
+
+## 🛠️ Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/naveen-93/Distributed-Task-Scheduler.git
+cd distributed-task-scheduler
+```
+
+2. **Install Go dependencies:**
+```bash
+go mod download
+```
+
+3. **Build the binaries:**
 ```bash
 make build
 ```
 
-This will create binaries in the `bin/` directory.
+## 🚀 Quick Start
 
-## Running the Services
+### 1. Start Redis (if not running)
+```bash
+redis-server --daemonize yes
+```
 
-### Option 1: Using Individual Commands
-
-1. Start the server:
+### 2. Start the Server
 ```bash
 make run-server
 ```
 
-2. Start a worker:
+### 3. Start Worker(s)
 ```bash
+# Terminal 2
 make run-worker
 ```
 
-3. Run a client command:
+### 4. Submit Jobs
 ```bash
-make run-client CMD='your command'
+# Terminal 3 - Submit default job
+make run-client
+
+# Submit custom job
+make run-client CMD='echo "Hello, World!"'
+
+# Submit heavy computation
+make run-client CMD='python3 -c "import time; time.sleep(5); print(\"Task completed!\")"'
 ```
 
-### Option 2: Using the Convenience Script
+## 📚 Usage Examples
 
-Script that runs both the server and worker:
-
+### Basic Job Submission
 ```bash
-bash run_services.sh
+# Simple command
+make run-client CMD='ls -la'
+
+# Python computation
+make run-client CMD='python3 -c "print(sum(range(1000)))"'
+
+# File operations
+make run-client CMD='du -sh /tmp'
 ```
 
-This script will:
-- Build all necessary binaries
-- Start the server and worker processes
-- Handle graceful shutdown on Ctrl+C
-- Clean up processes automatically
-
-## Available Make Commands
-
-- `make build`: Build all binaries
-- `make run-server`: Run the server
-- `make run-worker`: Run the worker
-- `make run-client`: Run the client (optional: CMD='your command')
-- `make clean`: Remove build artifacts
-- `make all`: Clean and rebuild all
-- `make help`: Show available commands
-
-## Development
-
-### Regenerating Protocol Buffers
-
-If you modify the protocol buffer definitions, regenerate the Go code:
-
+### Heavy Tasks for Testing
 ```bash
-bash protogen.sh
+# CPU-intensive: Fibonacci calculation
+make run-client CMD='python3 -c "import time; start=time.time(); fib=lambda n: n if n<=1 else fib(n-1)+fib(n-2); result=fib(35); print(f\"fib(35)={result}, took {time.time()-start:.2f}s\")"'
+
+# I/O-intensive: File operations
+make run-client CMD='dd if=/dev/zero of=/tmp/test_file bs=1M count=100 && rm /tmp/test_file'
+
+# Long-running: Progress simulation
+make run-client CMD='python3 -c "import time; [print(f\"Progress: {i}/10\") or time.sleep(1) for i in range(1,11)]"'
 ```
 
-### Database Schema
+### Programmatic Usage
 
-The SQLite database schema is located in `internal/db/schema.sql`.
+You can also submit jobs programmatically using the Go client:
 
-## Architecture Details
+```go
+package main
 
-### Server
-- Manages job scheduling and distribution
-- Maintains job status and history
-- Coordinates with workers through gRPC
-- Uses Redis for job queue management
+import (
+    "context"
+    "log"
+    pb "distributed-task-scheduler/proto"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+)
 
-### Worker
-- Connects to the server via gRPC
-- Pulls jobs from Redis queue
-- Executes assigned tasks
-- Reports execution results back to the server
+func main() {
+    conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer conn.Close()
 
-### Client
-- Submits jobs to the server
-- Can query job status and history
-- Communicates with server via gRPC
+    client := pb.NewJobServiceClient(conn)
+    
+    // Submit job
+    resp, err := client.SubmitJob(context.Background(), &pb.Job{
+        Command: "echo 'Hello from Go client!'",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Printf("Job submitted: %s", resp.JobId)
+}
+```
 
-## Error Handling
+## 🔧 Configuration
 
-- The system implements robust error handling and recovery
-- Failed jobs are automatically retried based on configuration
-- Workers can reconnect automatically if connection is lost
-- All operations are logged for debugging purposes
+### Server Configuration
+The server runs on `localhost:50051` by default. To change:
+
+```go
+// cmd/server/main.go
+const serverAddr = "localhost:8080"  // Change port
+```
+
+### Worker Configuration
+Workers connect to:
+- **Server**: `localhost:50051`
+- **Redis**: `localhost:6379`
+- **Database**: `./jobs.db`
+
+### Redis Configuration
+Default Redis settings work out of the box. For custom Redis:
+
+```go
+// internal/queue/queue.go
+redis.NewClient(&redis.Options{
+    Addr:     "localhost:6380",  // Custom port
+    Password: "your-password",   // Add password
+    DB:       1,                 // Different database
+})
+```
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+go test ./...
+```
+
+### Manual Testing
+```bash
+# Test with multiple workers
+make run-worker  # Terminal 1
+make run-worker  # Terminal 2
+make run-worker  # Terminal 3
+
+# Submit multiple jobs
+for i in {1..10}; do make run-client CMD="echo 'Job $i'"; done
+```
+
+### Performance Testing
+```bash
+# Submit CPU-intensive jobs
+for i in {1..5}; do 
+  make run-client CMD="python3 -c 'import time; time.sleep(2); print(\"Job $i done\")'" &
+done
+```
+
+## 📊 Monitoring
+
+### Job Status
+Jobs progress through these states:
+- `PENDING` → `RUNNING` → `SUCCEEDED`/`FAILED`
+
+### Logging
+- **Server logs**: Job submissions, queue operations
+- **Worker logs**: Job processing, execution results
+- **Redis logs**: Queue operations (if enabled)
+
+### Database Inspection
+```bash
+sqlite3 jobs.db "SELECT id, status, command, created_at FROM jobs ORDER BY created_at DESC LIMIT 10;"
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Jobs stuck in PENDING:**
+```bash
+# Check if Redis is running
+redis-cli ping
+
+# Check for multiple Redis instances
+ps aux | grep redis
+
+# Kill conflicting Redis processes
+pkill redis-server
+redis-server --daemonize yes
+```
+
+**Worker not processing jobs:**
+```bash
+# Check worker logs
+tail -f log/worker/worker_1.log
+
+# Verify Redis connection
+redis-cli LLEN pending_jobs
+```
+
+**Connection refused errors:**
+```bash
+# Check if server is running
+netstat -ln | grep 50051
+
+# Restart server
+make run-server
+```
+
+### Debug Mode
+For detailed debugging, check the logs or add debug prints:
+
+```go
+// Add to worker.go for more verbose logging
+log.Printf("Worker attempting to pop job...")
+```
+
+
+### Building from Source
+
+```bash
+# Generate protobuf code (if modified)
+protoc --go_out=. --go-grpc_out=. proto/scheduler.proto
+
+# Build all components
+make build
+
+# Clean and rebuild
+make clean && make build
+```
+
+
+
 
 
