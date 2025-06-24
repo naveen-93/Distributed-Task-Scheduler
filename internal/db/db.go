@@ -28,6 +28,7 @@ func NewDBManager(dbPath string) (*DBManager, error) {
 
 	// Create tables if they don't exist
 	if err := initDB(db); err != nil {
+		db.Close()
 		return nil, err
 	}
 
@@ -52,17 +53,21 @@ func initDB(db *sql.DB) error {
 func (m *DBManager) CreateJob(id, command string) error {
 	now := time.Now().Unix()
 	_, err := m.db.Exec(
-		"INSERT INTO jobs (id, status, command, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		id, "PENDING", command, now, now,
+		"INSERT INTO jobs (id, status, command, output, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+		id, "PENDING", command, nil, now, now,
 	)
 	return err
 }
 
 func (m *DBManager) UpdateJobStatus(id, status string, output string) error {
 	now := time.Now().Unix()
+	var outputVal sql.NullString
+	if output != "" {
+		outputVal = sql.NullString{String: output, Valid: true}
+	}
 	_, err := m.db.Exec(
 		"UPDATE jobs SET status = ?, output = ?, updated_at = ? WHERE id = ?",
-		status, output, now, id,
+		status, outputVal, now, id,
 	)
 	return err
 }

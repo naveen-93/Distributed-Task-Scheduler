@@ -18,7 +18,7 @@ const (
 
 func main() {
 	// Command line flags
-	command := flag.String("cmd", "echo 'Hello, World!'", "Command to execute")
+	command := flag.String("cmd", "python3 -c \"import time; start=time.time(); fib=lambda n: n if n<=1 else fib(n-1)+fib(n-2); result=fib(10); print(f'fib(35)={result}, took {time.time()-start:.2f}s')\"", "Command to execute")
 	flag.Parse()
 
 	// Connect to server

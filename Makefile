@@ -43,7 +43,7 @@ run-client: $(CLIENT_BINARY)
 
 # Clean build artifacts
 clean:
-	rm -rf $(BINARY_DIR)
+	rm -rf $(BINARY_DIR) log
 
 # Default target
 all: clean build
