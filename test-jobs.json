@@ -1,0 +1,19 @@
+{
+  "jobs": [
+    {
+      "name": "Hello World",
+      "command": "echo 'Hello from JSON job!'",
+      "description": "Simple echo command"
+    },
+    {
+      "name": "List Files",
+      "command": "ls",
+      "description": "List current directory contents"
+    },
+    {
+      "name": "Show Date",
+      "command": "date",
+      "description": "Display current date and time"
+    }
+  ]
+} 

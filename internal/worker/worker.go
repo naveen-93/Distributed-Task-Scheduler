@@ -64,7 +64,7 @@ func (w *Worker) Start(ctx context.Context) error {
 
 				// Handle queue errors
 				if err == queue.ErrQueueTimeout {
-					// This is normal, just continue
+					
 					continue
 				}
 

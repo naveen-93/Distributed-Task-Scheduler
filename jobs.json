@@ -1,0 +1,44 @@
+{
+  "jobs": [
+    {
+      "name": "List Current Directory",
+      "command": "ls -la",
+      "description": "List all files in the current directory with detailed information"
+    },
+    {
+      "name": "Check System Info",
+      "command": "uname -a && whoami",
+      "description": "Display system information and current user"
+    },
+    {
+      "name": "Python Hello World",
+      "command": "python3 -c \"print('Hello from JSON configured job!')\"",
+      "description": "Simple Python script execution"
+    },
+    {
+      "name": "Check Disk Usage",
+      "command": "df -h",
+      "description": "Display filesystem disk space usage"
+    },
+    {
+      "name": "Simple Math Calculation",
+      "command": "python3 -c \"import math; result = sum(range(1, 1010000)); print(f'Sum of 1-100: {result}')\"",
+      "description": "Calculate and display the sum of numbers from 1 to 100"
+    },
+    {
+      "name": "Current Date and Time",
+      "command": "date",
+      "description": "Show current system date and time"
+    },
+    {
+      "name": "Process Information",
+      "command": "ps aux | head -10",
+      "description": "Show top 10 running processes"
+    },
+    {
+      "name": "Network Interface Info",
+      "command": "ifconfig | grep -E 'inet|flags'",
+      "description": "Display network interface information"
+    }
+  ]
+} 
