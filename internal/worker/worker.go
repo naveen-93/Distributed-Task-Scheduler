@@ -23,10 +23,10 @@ type Worker struct {
 	redisAddr string
 }
 
-func NewWorker(id string, dbPath string, redisAddr string) (*Worker, error) {
-	log.Printf("Initializing worker %s with DB: %s, Redis: %s", id, dbPath, redisAddr)
+func NewWorker(id string, dsn string, redisAddr string) (*Worker, error) {
+	log.Printf("Initializing worker %s with DB: %s, Redis: %s", id, dsn, redisAddr)
 
-	dbMgr, err := db.NewDBManager(dbPath)
+	dbMgr, err := db.NewDBManager(dsn)
 	if err != nil {
 		log.Printf("Failed to initialize database: %v", err)
 		return nil, fmt.Errorf("failed to initialize database: %v", err)
@@ -64,7 +64,7 @@ func (w *Worker) Start(ctx context.Context) error {
 
 				// Handle queue errors
 				if err == queue.ErrQueueTimeout {
-					
+
 					continue
 				}
 

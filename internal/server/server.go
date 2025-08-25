@@ -21,10 +21,10 @@ type JobServer struct {
 	queueMgr *queue.QueueManager
 }
 
-func NewJobServer(dbPath string, redisAddr string) (*JobServer, error) {
-	log.Printf("Initializing job server with DB: %s, Redis: %s", dbPath, redisAddr)
+func NewJobServer(dsn string, redisAddr string) (*JobServer, error) {
+	log.Printf("Initializing job server with DB: %s, Redis: %s", dsn, redisAddr)
 
-	dbMgr, err := db.NewDBManager(dbPath)
+	dbMgr, err := db.NewDBManager(dsn)
 	if err != nil {
 		log.Printf("Failed to initialize database: %v", err)
 		return nil, err

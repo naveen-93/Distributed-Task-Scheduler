@@ -31,28 +31,28 @@ $(CLIENT_BINARY):
 
 # Run server
 run-server: $(SERVER_BINARY)
-	./$(SERVER_BINARY)
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(SERVER_BINARY)
 
 # Run worker
 run-worker: $(WORKER_BINARY)
-	./$(WORKER_BINARY)
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(WORKER_BINARY)
 
 # Run client (with optional JSON file and concurrent flag)
 run-client: $(CLIENT_BINARY)
-	./$(CLIENT_BINARY) $(if $(FILE),-file='$(FILE)') $(if $(CONCURRENT),-concurrent)
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(CLIENT_BINARY)  
 
 # Run client with default jobs.json file
 run-client-json: $(CLIENT_BINARY)
-	./$(CLIENT_BINARY) -file=jobs.json
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(CLIENT_BINARY) -file=jobs.json
 
 # Run client with jobs concurrently
 run-client-concurrent: $(CLIENT_BINARY)
-	./$(CLIENT_BINARY) -file=jobs.json -concurrent
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(CLIENT_BINARY) -file=jobs.json -concurrent
 
 # Run client with custom JSON file
 run-client-file: $(CLIENT_BINARY)
 	@if [ -z "$(FILE)" ]; then echo "Usage: make run-client-file FILE=your-jobs.json"; exit 1; fi
-	./$(CLIENT_BINARY) -file=$(FILE)
+	set -a; [ -f .env ] && . ./.env; set +a; ./$(CLIENT_BINARY) -file=$(FILE)
 
 # Clean build artifacts
 clean:

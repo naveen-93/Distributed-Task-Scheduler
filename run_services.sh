@@ -10,7 +10,8 @@ NC='\033[0m' # No Color
 # Configuration
 SERVER_PORT=${SERVER_PORT:-50051}  # Changed to match server's default port
 REDIS_HOST=${REDIS_HOST:-localhost:6379}
-DB_PATH=${DB_PATH:-./jobs.db}
+# Database DSN for PostgreSQL
+DATABASE_URL=${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/scheduler?sslmode=disable}
 WORKER_COUNT=${WORKER_COUNT:-1}
 
 # Create log directories if they don't exist
@@ -141,7 +142,7 @@ fi
 
 # Run server in background with logging
 print_status "Starting server on port $SERVER_PORT..."
-make run-server > log/server/server.log 2>&1 &
+DATABASE_URL="$DATABASE_URL" make run-server > log/server/server.log 2>&1 &
 SERVER_PID=$!
 PIDS+=("$SERVER_PID")
 
@@ -171,7 +172,7 @@ done
 # Start workers
 for ((i=1; i<=WORKER_COUNT; i++)); do
     print_status "Starting worker $i..."
-    make run-worker > log/worker/worker_$i.log 2>&1 &
+    DATABASE_URL="$DATABASE_URL" make run-worker > log/worker/worker_$i.log 2>&1 &
     WORKER_PID=$!
     PIDS+=("$WORKER_PID")
     
@@ -194,7 +195,7 @@ print_status "All services are running successfully!"
 echo -e "${BLUE}Configuration:${NC}"
 echo -e "  - Server: localhost:$SERVER_PORT"
 echo -e "  - Redis: $REDIS_HOST"
-echo -e "  - Database: $DB_PATH"
+echo -e "  - Database: $DATABASE_URL"
 echo -e "  - Workers: $WORKER_COUNT"
 echo
 echo -e "${BLUE}Process Information:${NC}"

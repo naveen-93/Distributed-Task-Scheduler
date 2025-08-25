@@ -12,17 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	dbPath    = "jobs.db"
-	redisAddr = "localhost:6379"
-)
-
 func main() {
 	// Generate unique worker ID
 	workerId := uuid.New().String()
 
 	// Create worker
-	w, err := worker.NewWorker(workerId, dbPath, redisAddr)
+	dsn := os.Getenv("DATABASE_URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	w, err := worker.NewWorker(workerId, dsn, redisAddr)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}

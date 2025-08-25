@@ -1,0 +1,19 @@
+set -a; [ -f .env ] && . ./.env; set +a; ./bin/server
+2025/08/25 14:05:18 Initializing job server with DB: postgres://naveen@localhost:5432/scheduler?sslmode=disable, Redis: localhost:6379
+2025/08/25 14:05:18 Successfully connected to Redis at localhost:6379
+2025/08/25 14:05:18 Job server initialized successfully
+2025/08/25 14:05:18 Server listening at [::]:50051
+2025/08/25 14:05:21 Processing job submission - ID: 344c4471-0101-4554-8aff-ae9ff0cc55fa, Command: ls -la
+2025/08/25 14:05:21 Job 344c4471-0101-4554-8aff-ae9ff0cc55fa stored in database successfully
+2025/08/25 14:05:21 Attempting to push job 344c4471-0101-4554-8aff-ae9ff0cc55fa to queue
+2025/08/25 14:05:21 Redis ping successful before push
+2025/08/25 14:05:21 Current queue length before push: 0
+2025/08/25 14:05:21 Executing RPUSH for job 344c4471-0101-4554-8aff-ae9ff0cc55fa with background context
+2025/08/25 14:05:21 RPUSH successful for job 344c4471-0101-4554-8aff-ae9ff0cc55fa, new length: 1
+2025/08/25 14:05:21 Waiting 100ms before verification...
+2025/08/25 14:05:22 Verification: actual queue length after push: 0
+2025/08/25 14:05:22 Queue contents after push: []
+2025/08/25 14:05:22 Testing direct Redis command...
+2025/08/25 14:05:22 Direct Redis test successful, length: 91
+2025/08/25 14:05:22 Job 344c4471-0101-4554-8aff-ae9ff0cc55fa queued for processing
+2025/08/25 14:05:22 Retrieved status for job 344c4471-0101-4554-8aff-ae9ff0cc55fa: SUCCEEDED

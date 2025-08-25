@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 
 	"distributed-task-scheduler/internal/server"
 	pb "distributed-task-scheduler/proto"
@@ -11,9 +12,7 @@ import (
 )
 
 const (
-	port      = ":50051"
-	dbPath    = "jobs.db"
-	redisAddr = "localhost:6379"
+	port = ":50051"
 )
 
 func main() {
@@ -23,7 +22,12 @@ func main() {
 	}
 
 	// Create job server
-	jobServer, err := server.NewJobServer(dbPath, redisAddr)
+	dsn := os.Getenv("DATABASE_URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	jobServer, err := server.NewJobServer(dsn, redisAddr)
 	if err != nil {
 		log.Fatalf("failed to create job server: %v", err)
 	}

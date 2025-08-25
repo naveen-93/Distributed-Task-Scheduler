@@ -1,13 +1,13 @@
 # Distributed Task Scheduler
 
-A high-performance distributed task scheduler built with Go, featuring gRPC communication, Redis queue management, and SQLite job persistence.
+A high-performance distributed task scheduler built with Go, featuring gRPC communication, Redis queue management, and PostgreSQL job persistence.
 
 ## 🚀 Features
 
 - **Distributed Architecture**: Scalable server-worker model
 - **gRPC Communication**: Fast, type-safe client-server communication
 - **Redis Queue**: Reliable FIFO job queue with Redis
-- **SQLite Persistence**: Durable job storage and status tracking
+- **PostgreSQL Persistence**: Durable centralized job storage and status tracking
 - **Real-time Status**: Live job status monitoring
 - **Concurrent Processing**: Multiple workers can process jobs simultaneously
 - **Command Execution**: Execute any shell command as a job
@@ -22,7 +22,7 @@ A high-performance distributed task scheduler built with Go, featuring gRPC comm
                              │                       │
                              ▼                       ▼
                         ┌─────────┐             ┌─────────┐
-                        │ SQLite  │             │ Command │
+                        │ Postgres│             │ Command │
                         │   DB    │             │ Executor│
                         └─────────┘             └─────────┘
 ```
@@ -71,12 +71,18 @@ make build
 redis-server --daemonize yes
 ```
 
-### 2. Start the Server
+### 2. Configure environment (.env)
+Create a `.env` file (copy from `.env.example`) and adjust values:
+```
+cp .env.example .env
+```
+
+### 3. Start the Server
 ```bash
 make run-server
 ```
 
-### 3. Start Worker(s)
+### 4. Start Worker(s)
 ```bash
 # Terminal 2
 make run-worker
@@ -170,7 +176,14 @@ const serverAddr = "localhost:8080"  // Change port
 Workers connect to:
 - **Server**: `localhost:50051`
 - **Redis**: `localhost:6379`
-- **Database**: `./jobs.db`
+- **Database**: `DATABASE_URL` env var (PostgreSQL DSN)
+
+### Database Configuration
+- Set via `.env` (`DATABASE_URL=postgres://user:pass@localhost:5432/scheduler?sslmode=disable`)
+- Optional pooling envs (in `.env`):
+  - `PG_MAX_CONNS` (e.g., `50`)
+  - `PG_MIN_CONNS` (e.g., `5`)
+  - `PG_MAX_CONN_LIFETIME` (e.g., `30m`)
 
 ### Redis Configuration
 Default Redis settings work out of the box. For custom Redis:
@@ -223,7 +236,7 @@ Jobs progress through these states:
 
 ### Database Inspection
 ```bash
-sqlite3 jobs.db "SELECT id, status, command, created_at FROM jobs ORDER BY created_at DESC LIMIT 10;"
+psql "$DATABASE_URL" -c "SELECT id, status, command, to_timestamp(created_at) AS created FROM tasks ORDER BY created_at DESC LIMIT 10;"
 ```
 
 ## 🔍 Troubleshooting
