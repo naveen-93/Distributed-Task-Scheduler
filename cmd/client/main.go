@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	serverAddr = "localhost:50051"
+	defaultServerAddr = "localhost:50051"
 )
 
 // JobConfig represents a single job configuration from JSON
@@ -46,6 +47,9 @@ func main() {
 	// Command line flags
 	jsonFile := flag.String("file", "jobs.json", "JSON file containing jobs to execute")
 	concurrent := flag.Bool("concurrent", false, "Run jobs concurrently instead of sequentially")
+	serversFlag := flag.String("servers", "", "Comma-separated list of server addresses (overrides SERVERS env)")
+	submitServerFlag := flag.String("submit-server", "", "Single server address to submit jobs to")
+	statusServersFlag := flag.String("status-servers", "", "Comma-separated list of server addresses to poll status from")
 	flag.Parse()
 
 	// Read and parse JSON file
@@ -60,22 +64,70 @@ func main() {
 
 	log.Printf("Loaded %d jobs from %s", len(jobs.Jobs), *jsonFile)
 
-	// Connect to server
-	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Failed to connect: %v", err)
+	// Resolve server addresses (backward compatible)
+	servers := []string{}
+	if *serversFlag != "" {
+		servers = splitAndTrim(*serversFlag)
+	} else if env := os.Getenv("SERVERS"); env != "" {
+		servers = splitAndTrim(env)
 	}
-	defer conn.Close()
 
-	client := pb.NewJobServiceClient(conn)
+	// Determine submit server
+	submitServer := *submitServerFlag
+	if submitServer == "" {
+		if env := os.Getenv("SUBMIT_SERVER"); env != "" {
+			submitServer = env
+		} else if len(servers) > 0 {
+			submitServer = servers[0]
+		} else {
+			submitServer = defaultServerAddr
+		}
+	}
+
+	// Determine status servers
+	statusServers := []string{}
+	if *statusServersFlag != "" {
+		statusServers = splitAndTrim(*statusServersFlag)
+	} else if env := os.Getenv("STATUS_SERVERS"); env != "" {
+		statusServers = splitAndTrim(env)
+	} else if len(servers) > 0 {
+		statusServers = servers
+	} else {
+		statusServers = []string{defaultServerAddr}
+	}
+
+	// Create submit client and status clients
+	var conns []*grpc.ClientConn
+	submitConn, err := grpc.Dial(submitServer, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to submit server %s: %v", submitServer, err)
+	}
+	conns = append(conns, submitConn)
+	submitClient := pb.NewJobServiceClient(submitConn)
+
+	var statusClients []pb.JobServiceClient
+	for _, addr := range statusServers {
+		c, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("Failed to connect to status server %s: %v", addr, err)
+		}
+		conns = append(conns, c)
+		statusClients = append(statusClients, pb.NewJobServiceClient(c))
+	}
+	defer func() {
+		for _, c := range conns {
+			c.Close()
+		}
+	}()
+
 	ctx := context.Background()
 
 	if *concurrent {
 		// Process jobs concurrently
-		processJobsConcurrently(ctx, client, jobs.Jobs)
+		processJobsConcurrently(ctx, submitClient, statusClients, jobs.Jobs)
 	} else {
 		// Process jobs sequentially
-		processJobsSequentially(ctx, client, jobs.Jobs)
+		processJobsSequentially(ctx, submitClient, statusClients, jobs.Jobs)
 	}
 }
 
@@ -95,7 +147,7 @@ func loadJobsFromFile(filename string) (*JobsFile, error) {
 }
 
 // processJobsSequentially processes jobs one by one
-func processJobsSequentially(ctx context.Context, client pb.JobServiceClient, jobConfigs []JobConfig) {
+func processJobsSequentially(ctx context.Context, submitClient pb.JobServiceClient, statusClients []pb.JobServiceClient, jobConfigs []JobConfig) {
 	for i, jobConfig := range jobConfigs {
 		log.Printf("\n=== Processing Job %d/%d: %s ===", i+1, len(jobConfigs), jobConfig.Name)
 		if jobConfig.Description != "" {
@@ -103,24 +155,24 @@ func processJobsSequentially(ctx context.Context, client pb.JobServiceClient, jo
 		}
 		log.Printf("Command: %s", jobConfig.Command)
 
-		result := processJob(ctx, client, jobConfig)
+		result := processJob(ctx, submitClient, statusClients, i, jobConfig)
 		printJobResult(result)
 	}
 }
 
 // processJobsConcurrently processes all jobs simultaneously
-func processJobsConcurrently(ctx context.Context, client pb.JobServiceClient, jobConfigs []JobConfig) {
+func processJobsConcurrently(ctx context.Context, submitClient pb.JobServiceClient, statusClients []pb.JobServiceClient, jobConfigs []JobConfig) {
 	var wg sync.WaitGroup
 	results := make(chan JobResult, len(jobConfigs))
 
 	// Submit all jobs concurrently
-	for _, jobConfig := range jobConfigs {
+	for i, jobConfig := range jobConfigs {
 		wg.Add(1)
-		go func(config JobConfig) {
+		go func(idx int, config JobConfig) {
 			defer wg.Done()
-			result := processJob(ctx, client, config)
+			result := processJob(ctx, submitClient, statusClients, idx, config)
 			results <- result
-		}(jobConfig)
+		}(i, jobConfig)
 	}
 
 	// Wait for all jobs to complete
@@ -143,7 +195,7 @@ func processJobsConcurrently(ctx context.Context, client pb.JobServiceClient, jo
 }
 
 // processJob submits a single job and waits for completion
-func processJob(ctx context.Context, client pb.JobServiceClient, jobConfig JobConfig) JobResult {
+func processJob(ctx context.Context, submitClient pb.JobServiceClient, statusClients []pb.JobServiceClient, idx int, jobConfig JobConfig) JobResult {
 	result := JobResult{Config: jobConfig}
 
 	// Submit job
@@ -152,7 +204,7 @@ func processJob(ctx context.Context, client pb.JobServiceClient, jobConfig JobCo
 		CreatedAt: time.Now().Unix(),
 	}
 
-	resp, err := client.SubmitJob(ctx, job)
+	resp, err := submitClient.SubmitJob(ctx, job)
 	if err != nil {
 		result.Error = fmt.Errorf("failed to submit job: %v", err)
 		return result
@@ -161,8 +213,9 @@ func processJob(ctx context.Context, client pb.JobServiceClient, jobConfig JobCo
 	result.JobID = resp.JobId
 	log.Printf("[%s] Job submitted successfully. Job ID: %s", jobConfig.Name, resp.JobId)
 
-	// Poll for job status
-	for {
+	// Poll for job status from status servers (round-robin)
+	for attempt := 0; ; attempt++ {
+		client := statusClients[(idx+attempt)%len(statusClients)]
 		status, err := client.GetJobStatus(ctx, &pb.JobId{Id: resp.JobId})
 		if err != nil {
 			log.Printf("[%s] Failed to get job status: %v", jobConfig.Name, err)
@@ -200,4 +253,16 @@ func printJobResult(result JobResult) {
 		}
 	}
 	fmt.Printf(strings.Repeat("=", 60) + "\n")
+}
+
+func splitAndTrim(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

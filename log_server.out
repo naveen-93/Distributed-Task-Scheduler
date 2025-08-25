@@ -17,3 +17,5 @@ set -a; [ -f .env ] && . ./.env; set +a; ./bin/server
 2025/08/25 14:05:22 Direct Redis test successful, length: 91
 2025/08/25 14:05:22 Job 344c4471-0101-4554-8aff-ae9ff0cc55fa queued for processing
 2025/08/25 14:05:22 Retrieved status for job 344c4471-0101-4554-8aff-ae9ff0cc55fa: SUCCEEDED
+/bin/sh: line 1: 67186 Killed: 9               ./bin/server
+make: *** [run-server] Error 137

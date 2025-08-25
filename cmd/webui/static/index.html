@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Scheduler Web UI</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
+      .row { display: flex; gap: 16px; flex-wrap: wrap; }
+      label { display: block; margin: 8px 0; font-weight: 600; }
+      select, input[type=text] { padding: 8px; width: 100%; max-width: 480px; }
+      button { padding: 8px 14px; cursor: pointer; }
+      textarea { width: 100%; height: 120px; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+      .muted { color: #666; font-size: 12px; }
+      pre { background: #f7f7f7; padding: 12px; border-radius: 6px; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <h2>Distributed Task Scheduler</h2>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Submit Server</label>
+          <select id="submitServer"></select>
+        </div>
+        <div>
+          <label>Status Server</label>
+          <select id="statusServer"></select>
+        </div>
+      </div>
+      <label>Command to Execute</label>
+      <input id="command" type="text" placeholder="e.g. ls -la" />
+      <div style="margin-top:10px;">
+        <button onclick="submitJob()">Submit</button>
+        <span class="muted" id="submitInfo"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Check Status</label>
+      <div class="row">
+        <input id="jobId" type="text" placeholder="Job ID" />
+        <button onclick="checkStatus()">Check</button>
+      </div>
+      <div id="statusArea" class="muted"></div>
+      <pre id="output"></pre>
+    </div>
+
+    <script>
+      async function loadServers() {
+        try {
+          const res = await fetch('/servers');
+          const servers = await res.json();
+          const submit = document.getElementById('submitServer');
+          const status = document.getElementById('statusServer');
+          submit.innerHTML = '';
+          status.innerHTML = '';
+          servers.forEach(s => {
+            const o1 = document.createElement('option'); o1.value = s; o1.textContent = s; submit.appendChild(o1);
+            const o2 = document.createElement('option'); o2.value = s; o2.textContent = s; status.appendChild(o2);
+          });
+        } catch (e) {
+          alert('Failed to load servers: ' + e);
+        }
+      }
+
+      async function submitJob() {
+        const cmd = document.getElementById('command').value.trim();
+        const submitServer = document.getElementById('submitServer').value;
+        if (!cmd) { alert('Enter a command'); return; }
+        const res = await fetch('/submit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ command: cmd, submitServer })
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        document.getElementById('jobId').value = data.jobId;
+        document.getElementById('submitInfo').textContent = 'Submitted job ' + data.jobId;
+      }
+
+      async function checkStatus() {
+        const jobId = document.getElementById('jobId').value.trim();
+        const server = document.getElementById('statusServer').value;
+        if (!jobId) { alert('Enter job id'); return; }
+        const res = await fetch(`/status?jobId=${encodeURIComponent(jobId)}&server=${encodeURIComponent(server)}`);
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        document.getElementById('statusArea').textContent = 'Status: ' + data.status;
+        document.getElementById('output').textContent = data.output || '';
+      }
+
+      loadServers();
+    </script>
+  </body>
+  </html>
+
+

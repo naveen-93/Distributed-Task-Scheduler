@@ -31,13 +31,15 @@ A high-performance distributed task scheduler built with Go, featuring gRPC comm
 
 - **Go** 1.19 or higher
 - **Redis** server
+- **PostgreSQL** 12+ (16 recommended)
 - **Protocol Buffers** compiler (for development)
+- Optional for HA: **etcd** (3 or 5 node cluster in production; single node ok for local)
 
 ### Installing Dependencies
 
 **macOS:**
 ```bash
-brew install go redis protobuf
+brew install go redis postgresql@16 etcd protobuf
 ```
 
 **Ubuntu/Debian:**
@@ -66,38 +68,55 @@ make build
 
 ## 🚀 Quick Start
 
-### 1. Start Redis (if not running)
+### 1) Create .env
+Minimal example (adjust as needed):
 ```bash
-redis-server --daemonize yes
+cat > .env <<'ENV'
+DATABASE_URL=postgres://<user>:<pass>@localhost:5432/scheduler?sslmode=disable
+REDIS_ADDR=localhost:6379
+# Optional HA via etcd
+ETCD_ENDPOINTS=localhost:2379
+ELECTION_NAMESPACE=/scheduler/v1
+ELECTION_KEY=leader
+LEASE_TTL=10s
+# Optional: pgx pool tuning
+PG_MAX_CONNS=50
+PG_MIN_CONNS=5
+PG_MAX_CONN_LIFETIME=30m
+ENV
 ```
 
-### 2. Configure environment (.env)
-Create a `.env` file (copy from `.env.example`) and adjust values:
-```
-cp .env.example .env
-```
-
-### 3. Start the Server
+### 2) Start everything
 ```bash
-make run-server
+make start SERVER_COUNT=3 WORKER_COUNT=2 WEBUI_ADDR=:8080
+```
+- Starts Redis/Postgres/etcd via Homebrew if available, then servers, workers, and the Web UI.
+- Writes a `.servers` file with the running server addresses.
+
+### 3) Submit jobs (CLI)
+```bash
+# Use all servers discovered by make start
+make run-client-servers FILE=jobs.json
+
+# Or target a specific server only
+./bin/client -file=jobs.json -servers=localhost:50052
+
+# Or submit to one and poll from others
+./bin/client -file=jobs.json \
+  -submit-server=localhost:50052 \
+  -status-servers=localhost:50051,localhost:50053
 ```
 
-### 4. Start Worker(s)
+### 4) Web UI
 ```bash
-# Terminal 2
-make run-worker
+make run-webui         # or launched by make start on :8080
+open http://localhost:8080
 ```
+- Pick a submit server, a status server, and enter the command to execute.
 
-### 4. Submit Jobs
+### 5) Stop everything
 ```bash
-# Terminal 3 - Submit default job
-make run-client
-
-# Submit custom job
-make run-client CMD='echo "Hello, World!"'
-
-# Submit heavy computation
-make run-client CMD='python3 -c "import time; time.sleep(5); print(\"Task completed!\")"'
+make stop
 ```
 
 ## 📚 Usage Examples
@@ -165,20 +184,23 @@ func main() {
 ## 🔧 Configuration
 
 ### Server Configuration
-The server runs on `localhost:50051` by default. To change:
-
-```go
-// cmd/server/main.go
-const serverAddr = "localhost:8080"  // Change port
-```
+- The server listens on port from `SERVER_PORT` (default: 50051).
+- Leader election (optional HA) uses etcd via `ETCD_ENDPOINTS`, `ELECTION_NAMESPACE`, `ELECTION_KEY`, `LEASE_TTL`.
 
 ### Worker Configuration
-Workers connect to:
-- **Server**: `localhost:50051`
-- **Redis**: `localhost:6379`
-- **Database**: `DATABASE_URL` env var (PostgreSQL DSN)
+Workers connect to shared infra:
+- **Redis**: `REDIS_ADDR` (default `localhost:6379`)
+- **Database**: `DATABASE_URL` (PostgreSQL DSN)
 
 ### Database Configuration
+### High Availability (Leader Election)
+- Set these envs to enable leader election (etcd-backed):
+  - `ETCD_ENDPOINTS=localhost:2379` (comma-separated for multiple)
+  - `ELECTION_NAMESPACE=/scheduler/v1`
+  - `ELECTION_KEY=leader`
+  - `LEASE_TTL=10s`
+- Only the elected leader runs maintenance loops (e.g., stale RUNNING job cleanup).
+- All scheduler instances are otherwise stateless and can serve gRPC calls.
 - Set via `.env` (`DATABASE_URL=postgres://user:pass@localhost:5432/scheduler?sslmode=disable`)
 - Optional pooling envs (in `.env`):
   - `PG_MAX_CONNS` (e.g., `50`)
@@ -230,7 +252,7 @@ Jobs progress through these states:
 - `PENDING` → `RUNNING` → `SUCCEEDED`/`FAILED`
 
 ### Logging
-- **Server logs**: Job submissions, queue operations
+- **Server logs**: Job submissions, queue operations, leader election
 - **Worker logs**: Job processing, execution results
 - **Redis logs**: Queue operations (if enabled)
 
@@ -267,12 +289,32 @@ redis-cli LLEN pending_jobs
 
 **Connection refused errors:**
 ```bash
-# Check if server is running
-netstat -ln | grep 50051
+# Check if servers are running
+netstat -ln | egrep '5005[1-9]'
 
-# Restart server
-make run-server
+# Start or restart services
+make start
 ```
+
+## 🧰 Make Targets (Cheatsheet)
+
+- **Build**: `make build`
+- **Start all**: `make start SERVER_COUNT=3 WORKER_COUNT=2 WEBUI_ADDR=:8080`
+- **Stop all**: `make stop`
+- **Run N servers**: `make run-servers SERVER_COUNT=3 BASE_PORT=50051`
+- **Stop servers**: `make stop-servers`
+- **Run a worker**: `make run-worker`
+- **Run client across discovered servers**: `make run-client-servers FILE=jobs.json`
+- **Run Web UI**: `make run-webui` (default `:8080`)
+
+## 🧑‍💻 Client Options
+
+- Round-robin across servers:
+  - Env: `SERVERS=host1:50051,host2:50052,host3:50053`
+  - Flag: `-servers=host1:50051,host2:50052,host3:50053`
+- Submit to one server, poll status from others:
+  - Flags: `-submit-server=hostN:portN -status-servers=host1:port1,host2:port2`
+  - Or env: `SUBMIT_SERVER=...` and `STATUS_SERVERS=host1:...,host2:...`
 
 ### Debug Mode
 For detailed debugging, check the logs or add debug prints:

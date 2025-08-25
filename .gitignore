@@ -1,0 +1,24 @@
+# Build artifacts
+bin/
+
+# Logs
+log/
+*.log
+
+# Local environment/config
+.env
+.servers
+
+# Databases and local state
+jobs.db
+*.sqlite
+*.db
+
+# OS/editor files
+.DS_Store
+*.swp
+*.swo
+
+# Go coverage / test artifacts
+cover.out
+*.coverprofile

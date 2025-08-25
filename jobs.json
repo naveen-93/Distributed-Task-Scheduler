@@ -2,7 +2,7 @@
   "jobs": [
     {
       "name": "List Current Directory",
-      "command": "ls -la",
+      "command": "ls",
       "description": "List all files in the current directory with detailed information"
     }
   ]

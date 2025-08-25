@@ -163,3 +163,18 @@ func nullableString(s string) sql.NullString {
 	}
 	return sql.NullString{String: s, Valid: true}
 }
+
+// MarkStaleRunningJobsFailed marks RUNNING tasks as FAILED if updated_at is older than cutoffSeconds.
+func (m *DBManager) MarkStaleRunningJobsFailed(cutoffSeconds int64) (int64, error) {
+	ctx := context.Background()
+	now := time.Now().Unix()
+	cutoff := now - cutoffSeconds
+	cmdTag, err := m.pool.Exec(ctx,
+		`UPDATE tasks SET status='FAILED', output=COALESCE(output,'') || '\n[auto] marked failed due to staleness', updated_at=$1
+		 WHERE status='RUNNING' AND updated_at < $2`, now, cutoff,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return cmdTag.RowsAffected(), nil
+}

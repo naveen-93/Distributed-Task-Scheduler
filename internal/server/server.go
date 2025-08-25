@@ -17,8 +17,9 @@ import (
 
 type JobServer struct {
 	pb.UnimplementedJobServiceServer
-	dbMgr    *db.DBManager
-	queueMgr *queue.QueueManager
+	dbMgr      *db.DBManager
+	queueMgr   *queue.QueueManager
+	stopLeader chan struct{}
 }
 
 func NewJobServer(dsn string, redisAddr string) (*JobServer, error) {
@@ -39,9 +40,34 @@ func NewJobServer(dsn string, redisAddr string) (*JobServer, error) {
 
 	log.Printf("Job server initialized successfully")
 	return &JobServer{
-		dbMgr:    dbMgr,
-		queueMgr: queueMgr,
+		dbMgr:      dbMgr,
+		queueMgr:   queueMgr,
+		stopLeader: make(chan struct{}),
 	}, nil
+}
+
+// StartLeaderLoops runs leader-only maintenance until stop is closed or ctx done.
+func (s *JobServer) StartLeaderLoops(ctx context.Context) {
+	log.Printf("Leader duties started")
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("Leader duties stopping: context done")
+			return
+		case <-s.stopLeader:
+			log.Printf("Leader duties stopping: stop signal")
+			return
+		case <-ticker.C:
+			// 1) Mark stale RUNNING jobs as FAILED after 10 minutes of inactivity
+			if n, err := s.dbMgr.MarkStaleRunningJobsFailed(600); err != nil {
+				log.Printf("Leader maintenance error: %v", err)
+			} else if n > 0 {
+				log.Printf("Leader maintenance: marked %d stale RUNNING jobs as FAILED", n)
+			}
+		}
+	}
 }
 
 func (s *JobServer) SubmitJob(ctx context.Context, job *pb.Job) (*pb.JobResponse, error) {
