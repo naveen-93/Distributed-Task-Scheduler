@@ -13,6 +13,7 @@ import (
 	pb "distributed-task-scheduler/proto"
 
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
 )
 
 type JobServer struct {
@@ -51,6 +52,7 @@ func (s *JobServer) StartLeaderLoops(ctx context.Context) {
 	log.Printf("Leader duties started")
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
+	parser := cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 	for {
 		select {
 		case <-ctx.Done():
@@ -65,6 +67,27 @@ func (s *JobServer) StartLeaderLoops(ctx context.Context) {
 				log.Printf("Leader maintenance error: %v", err)
 			} else if n > 0 {
 				log.Printf("Leader maintenance: marked %d stale RUNNING jobs as FAILED", n)
+			}
+			// 2) Enqueue due one-time and recurring tasks
+			ids, err := s.dbMgr.GetDueTaskIDs(100)
+			if err != nil {
+				log.Printf("Leader enqueue scan error: %v", err)
+				continue
+			}
+			for _, id := range ids {
+				if err := s.queueMgr.PushJob(ctx, id); err != nil {
+					log.Printf("Leader enqueue push error for %s: %v", id, err)
+					continue
+				}
+				_ = s.dbMgr.ClearExecuteAt(id)
+				// cron: compute next
+				job, jerr := s.dbMgr.GetJob(id)
+				if jerr == nil && job.CronExpr.Valid {
+					if sched, perr := parser.Parse(job.CronExpr.String); perr == nil {
+						next := sched.Next(time.Now())
+						_ = s.dbMgr.UpdateNextRun(id, next)
+					}
+				}
 			}
 		}
 	}

@@ -12,6 +12,9 @@ A high-performance distributed task scheduler built with Go, featuring gRPC comm
 - **Concurrent Processing**: Multiple workers can process jobs simultaneously
 - **Command Execution**: Execute any shell command as a job
 - **Comprehensive Logging**: Detailed logging for debugging and monitoring
+ - **Reliable Queueing**: Processing list with ack/requeue and DLQ on max retries
+ - **Retries + DLQ**: Automatic retries with `max_retries`, dead‑letter queue for failures
+ - **Recurring (Cron) Jobs**: `cron_expr` + `next_run_at` with leader-driven enqueue
 
 ## 🏗️ Architecture
 
@@ -217,6 +220,41 @@ redis.NewClient(&redis.Options{
     Password: "your-password",   // Add password
     DB:       1,                 // Different database
 })
+```
+
+## ♻️ Reliability: Retries and DLQ
+
+- Each task has `retries` (counter) and `max_retries` (default 3).
+- Worker flow on failure:
+  - Increment `retries`; if `retries <= max_retries` → reset to PENDING and requeue
+  - Else → move task ID to DLQ (`dlq_tasks`) and leave status=FAILED in DB
+- Queue semantics:
+  - Pending list → Processing list via BRPOPLPUSH
+  - Ack on success (remove from processing)
+  - Requeue or DLQ on failure
+
+To inspect the DLQ:
+```bash
+redis-cli LRANGE dlq_tasks 0 -1
+```
+
+## ⏰ Recurring (Cron) Jobs
+
+- Add `cron_expr` (e.g., `*/5 * * * *`) and `next_run_at` in `tasks`.
+- Leader periodically enqueues due cron tasks and advances `next_run_at`.
+
+Insert a demo cron task (every minute) via psql:
+```bash
+# assumes DATABASE_URL is set; on macOS you may need: export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
+psql "$DATABASE_URL" -c "
+INSERT INTO tasks (id,name,args,command,execute_at,status,retries,priority,output,created_at,updated_at,cron_expr,next_run_at)
+VALUES ('cron-echo-1','cron',NULL,'echo cron-run',NULL,'PENDING',0,0,NULL,extract(epoch from now())::bigint,extract(epoch from now())::bigint,'*/1 * * * *', now())
+ON CONFLICT (id) DO UPDATE SET cron_expr=EXCLUDED.cron_expr, next_run_at=now(), status='PENDING', updated_at=extract(epoch from now())::bigint;"
+```
+
+Then tail the worker logs to see periodic runs:
+```bash
+tail -f log/worker/worker_1.log
 ```
 
 ## 🧪 Testing

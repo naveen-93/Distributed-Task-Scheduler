@@ -3271,3 +3271,120 @@ set -a; [ -f .env ] && . ./.env; set +a; ./bin/worker
 2025/08/25 15:13:20 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
 2025/08/25 15:13:20 PopJob: Current queue length before pop: 0
 2025/08/25 15:13:20 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:25 No jobs available in queue after 5s timeout
+2025/08/25 15:13:25 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:25 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:25 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:30 No jobs available in queue after 5s timeout
+2025/08/25 15:13:30 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:30 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:30 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:35 No jobs available in queue after 5s timeout
+2025/08/25 15:13:35 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:35 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:35 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:40 No jobs available in queue after 5s timeout
+2025/08/25 15:13:40 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:40 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:40 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:45 No jobs available in queue after 5s timeout
+2025/08/25 15:13:45 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:45 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:45 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:50 No jobs available in queue after 5s timeout
+2025/08/25 15:13:50 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:50 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:50 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:13:55 No jobs available in queue after 5s timeout
+2025/08/25 15:13:55 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:13:55 PopJob: Current queue length before pop: 0
+2025/08/25 15:13:55 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:00 No jobs available in queue after 5s timeout
+2025/08/25 15:14:00 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:00 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:00 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:05 No jobs available in queue after 5s timeout
+2025/08/25 15:14:05 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:05 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:05 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:10 No jobs available in queue after 5s timeout
+2025/08/25 15:14:10 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:10 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:10 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:15 No jobs available in queue after 5s timeout
+2025/08/25 15:14:15 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:15 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:15 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:20 No jobs available in queue after 5s timeout
+2025/08/25 15:14:20 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:20 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:20 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:25 No jobs available in queue after 5s timeout
+2025/08/25 15:14:25 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:25 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:25 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:30 No jobs available in queue after 5s timeout
+2025/08/25 15:14:30 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:30 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:30 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:35 No jobs available in queue after 5s timeout
+2025/08/25 15:14:35 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:35 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:35 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:40 No jobs available in queue after 5s timeout
+2025/08/25 15:14:40 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:40 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:40 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:46 No jobs available in queue after 5s timeout
+2025/08/25 15:14:46 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:46 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:46 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:51 No jobs available in queue after 5s timeout
+2025/08/25 15:14:51 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:51 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:51 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:14:56 No jobs available in queue after 5s timeout
+2025/08/25 15:14:56 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:14:56 PopJob: Current queue length before pop: 0
+2025/08/25 15:14:56 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:01 No jobs available in queue after 5s timeout
+2025/08/25 15:15:01 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:01 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:01 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:06 No jobs available in queue after 5s timeout
+2025/08/25 15:15:06 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:06 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:06 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:11 No jobs available in queue after 5s timeout
+2025/08/25 15:15:11 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:11 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:11 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:16 No jobs available in queue after 5s timeout
+2025/08/25 15:15:16 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:16 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:16 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:21 No jobs available in queue after 5s timeout
+2025/08/25 15:15:21 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:21 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:21 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:26 No jobs available in queue after 5s timeout
+2025/08/25 15:15:26 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:26 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:26 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:31 No jobs available in queue after 5s timeout
+2025/08/25 15:15:31 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:31 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:31 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:36 No jobs available in queue after 5s timeout
+2025/08/25 15:15:36 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:36 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:36 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:41 No jobs available in queue after 5s timeout
+2025/08/25 15:15:41 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 waiting for next job (attempt 1/3)...
+2025/08/25 15:15:41 PopJob: Current queue length before pop: 0
+2025/08/25 15:15:41 PopJob: Starting BLPOP with timeout 5s using background context
+2025/08/25 15:15:46 Received signal terminated, shutting down...
+make: *** [run-worker] Terminated: 15
+2025/08/25 15:15:46 No jobs available in queue after 5s timeout
+2025/08/25 15:15:46 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 shutting down...
+2025/08/25 15:15:46 Worker 26f75dc3-ef6c-454d-8b2f-8b59f7455f53 cleaning up...

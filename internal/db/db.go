@@ -11,12 +11,16 @@ import (
 )
 
 type Job struct {
-	ID        string
-	Status    string
-	Command   string
-	Output    sql.NullString
-	CreatedAt int64
-	UpdatedAt int64
+	ID         string
+	Status     string
+	Command    string
+	Output     sql.NullString
+	CreatedAt  int64
+	UpdatedAt  int64
+	Retries    int32
+	MaxRetries int32
+	CronExpr   sql.NullString
+	NextRunAt  sql.NullTime
 }
 
 type DBManager struct {
@@ -64,8 +68,7 @@ func NewDBManager(dsn string) (*DBManager, error) {
 }
 
 func (m *DBManager) initDB(ctx context.Context) error {
-	// Create tasks and task_history tables if not present
-	// Use TEXT for id to align with existing UUID strings
+	// Base tables
 	_, err := m.pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS tasks (
 			id TEXT PRIMARY KEY,
@@ -92,7 +95,14 @@ func (m *DBManager) initDB(ctx context.Context) error {
 			FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 		);
 	`)
-	return err
+	if err != nil {
+		return err
+	}
+	// Add new columns if missing
+	_, _ = m.pool.Exec(ctx, `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS max_retries INTEGER NOT NULL DEFAULT 3`)
+	_, _ = m.pool.Exec(ctx, `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS cron_expr TEXT`)
+	_, _ = m.pool.Exec(ctx, `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMPTZ`)
+	return nil
 }
 
 func (m *DBManager) CreateJob(id, command string) error {
@@ -139,14 +149,18 @@ func (m *DBManager) GetJob(id string) (*Job, error) {
 	ctx := context.Background()
 	job := &Job{}
 	var output sql.NullString
+	var cron sql.NullString
+	var next sql.NullTime
 	err := m.pool.QueryRow(ctx,
-		`SELECT id, status, COALESCE(command, ''), output, created_at, updated_at FROM tasks WHERE id = $1`,
+		`SELECT id, status, COALESCE(command, ''), output, created_at, updated_at, retries, max_retries, cron_expr, next_run_at FROM tasks WHERE id = $1`,
 		id,
-	).Scan(&job.ID, &job.Status, &job.Command, &output, &job.CreatedAt, &job.UpdatedAt)
+	).Scan(&job.ID, &job.Status, &job.Command, &output, &job.CreatedAt, &job.UpdatedAt, &job.Retries, &job.MaxRetries, &cron, &next)
 	if err != nil {
 		return nil, err
 	}
 	job.Output = output
+	job.CronExpr = cron
+	job.NextRunAt = next
 	return job, nil
 }
 
@@ -164,7 +178,66 @@ func nullableString(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: true}
 }
 
-// MarkStaleRunningJobsFailed marks RUNNING tasks as FAILED if updated_at is older than cutoffSeconds.
+// IncrementRetry increments retries and returns (retries, max_retries)
+func (m *DBManager) IncrementRetry(id string) (int32, int32, error) {
+	ctx := context.Background()
+	var retries int32
+	var max int32
+	err := m.pool.QueryRow(ctx, `UPDATE tasks SET retries = retries + 1, updated_at = $2 WHERE id=$1 RETURNING retries, max_retries`, id, time.Now().Unix()).Scan(&retries, &max)
+	if err != nil {
+		return 0, 0, err
+	}
+	return retries, max, nil
+}
+
+// ResetToPending sets status back to PENDING and updates output/updated_at
+func (m *DBManager) ResetToPending(id string, output string) error {
+	ctx := context.Background()
+	_, err := m.pool.Exec(ctx, `UPDATE tasks SET status='PENDING', output=$2, updated_at=$3 WHERE id=$1`, id, nullableString(output), time.Now().Unix())
+	return err
+}
+
+// GetDueTaskIDs returns task IDs due for enqueue (one-time execute_at or cron next_run_at)
+func (m *DBManager) GetDueTaskIDs(limit int) ([]string, error) {
+	ctx := context.Background()
+	rows, err := m.pool.Query(ctx, `
+		SELECT id FROM tasks
+		WHERE status='PENDING' AND (
+		  execute_at IS NULL OR execute_at <= now() OR (next_run_at IS NOT NULL AND next_run_at <= now())
+		)
+		ORDER BY updated_at ASC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// UpdateNextRun sets next_run_at for cron tasks
+func (m *DBManager) UpdateNextRun(id string, t time.Time) error {
+	ctx := context.Background()
+	_, err := m.pool.Exec(ctx, `UPDATE tasks SET next_run_at=$2, updated_at=$3 WHERE id=$1`, id, t, time.Now().Unix())
+	return err
+}
+
+// ClearExecuteAt nulls execute_at to prevent re-enqueue of one-time tasks after push
+func (m *DBManager) ClearExecuteAt(id string) error {
+	ctx := context.Background()
+	_, err := m.pool.Exec(ctx, `UPDATE tasks SET execute_at=NULL, updated_at=$2 WHERE id=$1`, id, time.Now().Unix())
+	return err
+}
+
+// MarkStaleRunningJobsFailed marks RUNNING tasks as FAILED if updated_at older than cutoffSeconds.
 func (m *DBManager) MarkStaleRunningJobsFailed(cutoffSeconds int64) (int64, error) {
 	ctx := context.Background()
 	now := time.Now().Unix()

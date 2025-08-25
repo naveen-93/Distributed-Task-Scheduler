@@ -155,7 +155,7 @@ func (w *Worker) processNextJob(ctx context.Context) error {
 		log.Printf("Worker %s: job %s completed successfully", w.id, jobId)
 	}
 
-	// Update final status and output with retries
+	// Persist status
 	for retries := 0; retries < MAX_RETRIES; retries++ {
 		if err := w.dbMgr.UpdateJobStatus(jobId, status, outputStr); err == nil {
 			break
@@ -164,6 +164,38 @@ func (w *Worker) processNextJob(ctx context.Context) error {
 		if retries < MAX_RETRIES-1 {
 			time.Sleep(RECONNECT_DELAY)
 		}
+	}
+
+	// Queue ack / retry / DLQ
+	if status == "SUCCEEDED" {
+		if err := w.queueMgr.AckProcessing(ctx, jobId); err != nil {
+			log.Printf("Worker %s: failed to ack processing for %s: %v", w.id, jobId, err)
+		}
+		return nil
+	}
+
+	// Increment retry counter and decide requeue or DLQ
+	retries, max, incErr := w.dbMgr.IncrementRetry(jobId)
+	if incErr != nil {
+		log.Printf("Worker %s: failed to increment retry for %s: %v", w.id, jobId, incErr)
+		// best effort: move back to pending
+		_ = w.queueMgr.RequeueFromProcessing(ctx, jobId)
+		return incErr
+	}
+	if retries <= max {
+		// Reset status to PENDING and requeue
+		_ = w.dbMgr.ResetToPending(jobId, outputStr)
+		if err := w.queueMgr.RequeueFromProcessing(ctx, jobId); err != nil {
+			log.Printf("Worker %s: failed to requeue %s: %v", w.id, jobId, err)
+			return err
+		}
+		log.Printf("Worker %s: requeued job %s (retry %d/%d)", w.id, jobId, retries, max)
+	} else {
+		if err := w.queueMgr.MoveToDLQ(ctx, jobId); err != nil {
+			log.Printf("Worker %s: failed to move %s to DLQ: %v", w.id, jobId, err)
+			return err
+		}
+		log.Printf("Worker %s: moved job %s to DLQ after %d retries", w.id, jobId, retries-1)
 	}
 
 	return nil
